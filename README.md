@@ -29,6 +29,8 @@ Here I import the attention layer in GAT and put it into the GCN layer in layers
 Please notice that this modification is only on GCN model, so if you use other models, it won't work.
   
 If you want to change the dataset, don't forget to change the 'nb_nodes' variable in layers.py
+
+**Notice: The Pubmed dataset will probably lead to a Out Of Memory error
   
 Values for 'nb_nodes':
 
