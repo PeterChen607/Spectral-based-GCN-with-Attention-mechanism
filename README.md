@@ -1,7 +1,7 @@
 # Spectral-based-GCN-with-Attention-mechanism
-## This is an experiment on attention mechanism in spectral based GCN.
+This is an experiment on attention mechanism in spectral based GCN.
 
-## The code is based on normal spectral based GCN and GAT.
+The code is based on normal spectral based GCN and GAT.
 
 ## Original source code & data: 
 - `GCN: https://github.com/tkipf/gcn`
