@@ -40,3 +40,5 @@ Values for 'nb_nodes':
 
   
   
+
+**Notice: The Pubmed dataset will probably lead to a Out Of Memory error
