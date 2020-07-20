@@ -185,7 +185,7 @@ class GraphConvolution(Layer):
         
 
         seq = seq[np.newaxis]
-        nb_nodes = 2708
+        nb_nodes = 3327
         coef_drop = 0.1
         out_sz = self.output_dim
         seq_fts = tf.layers.conv1d(seq, out_sz, 1, use_bias=False)
@@ -219,9 +219,29 @@ class GraphConvolution(Layer):
 
         # print(coefs)
 
+        # coefs_mat = tf.sparse_tensor_to_dense(coefs, validate_indices=False)
+        # coefs_I = tf.diag(tf.pow(tf.reduce_sum(coefs_mat, 1), 0)) 
+        # coefs_mat = tf.add(coefs_mat, coefs_I)
+        # rowsum = tf.reduce_sum(coefs_mat, 1, keepdims=True)
+        # # print('rowsum:', rowsum)
+        # # d_inv_sqrt = np.power(rowsum, -0.5).flatten()       #  D^(-1/2)
+        # d_inv_sqrt = tf.pow(rowsum, -0.5)
+
+        # # d_inv_sqrt[np.isinf(d_inv_sqrt)] = 0.
+        # d_inv_inverse = tf.pow(d_inv_sqrt, -1)
+        # inf = tf.math.is_inf(d_inv_sqrt)
+        # inf_int = tf.to_float(inf)
+        # d_inv_inverse = tf.to_float(d_inv_inverse)
+        # d = tf.add(d_inv_inverse, inf_int)
+        # d = tf.pow(d, -1)
+        # d = tf.subtract(d, inf_int)
+
+        # # d_mat_inv_sqrt = sp.diags(d_inv_sqrt)
+        # d = tf.reduce_sum(d, 1)
+        # d_mat_inv_sqrt = tf.diag(d)
+
+
         coefs_mat = tf.sparse_tensor_to_dense(coefs, validate_indices=False)
-        coefs_I = tf.diag(tf.pow(tf.reduce_sum(coefs_mat, 1), 0)) 
-        coefs_mat = tf.add(coefs_mat, coefs_I)
         rowsum = tf.reduce_sum(coefs_mat, 1, keepdims=True)
         # print('rowsum:', rowsum)
         # d_inv_sqrt = np.power(rowsum, -0.5).flatten()       #  D^(-1/2)
@@ -239,9 +259,26 @@ class GraphConvolution(Layer):
         # d_mat_inv_sqrt = sp.diags(d_inv_sqrt)
         d = tf.reduce_sum(d, 1)
         d_mat_inv_sqrt = tf.diag(d)
+        Support_mat = tf.multiply(tf.transpose(tf.multiply(coefs_mat, d_mat_inv_sqrt)), d_mat_inv_sqrt)
+
+        coefs_I = tf.diag(tf.pow(tf.reduce_sum(coefs_mat, 1), 0))
+        laplacian = tf.subtract(coefs_I, Support_mat)
+        eigval, eigvect = tf.self_adjoint_eig(laplacian)
+        largest_eigval = tf.reduce_max(eigval)
+        scaled_laplacian = tf.subtract(tf.multiply(laplacian, (2. / largest_eigval)), coefs_I)  # 2/\lambda_{max}L-I_N
+        t_k = list()
+        t_k.append(coefs_I)
+        t_k.append(scaled_laplacian)
+        # 依据公式 T_n(x) = 2xT_n(x) - T_{n-1}(x) 构造递归程序，计算T_2 -> T_k
+        def chebyshev_recurrence(t_k_minus_one, t_k_minus_two, scaled_lap):
+            # s_lap = sp.csr_matrix(scaled_lap, copy=True)
+            return tf.subtract(tf.multiply(tf.multiply(scaled_lap, t_k_minus_one), 2), t_k_minus_two)
+
+        for i in range(2, 4):
+            t_k.append(chebyshev_recurrence(t_k[-1], t_k[-2], scaled_laplacian))
 
         # Support_mat =  coefs.dot(d_mat_inv_sqrt).transpose().dot(d_mat_inv_sqrt).tocoo()      #transpose:转置
-        Support_mat = tf.multiply(tf.transpose(tf.multiply(coefs_mat, d_mat_inv_sqrt)), d_mat_inv_sqrt)
+        
         print('support_mat:', Support_mat)
 
         # convolve
@@ -254,7 +291,7 @@ class GraphConvolution(Layer):
             else:
                 pre_sup = self.vars['weights_' + str(i)]
             # support = dot(self.support[i], pre_sup, sparse=True)
-            support = dot(Support_mat, pre_sup, sparse=False)
+            support = dot(t_k[i], pre_sup, sparse=False)
             supports.append(support)
         output = tf.add_n(supports)
 
