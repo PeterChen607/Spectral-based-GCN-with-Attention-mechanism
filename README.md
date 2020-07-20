@@ -36,7 +36,7 @@ Values for 'nb_nodes':
     
     pubmed: 19717
     
-    citeseer: 3328
+    citeseer: 3327
 
   
   
