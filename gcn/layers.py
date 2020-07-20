@@ -220,6 +220,8 @@ class GraphConvolution(Layer):
         # print(coefs)
 
         coefs_mat = tf.sparse_tensor_to_dense(coefs, validate_indices=False)
+        coefs_I = tf.diag(tf.pow(tf.reduce_sum(coefs_mat, 1), 0)) 
+        coefs_mat = tf.add(coefs_mat, coefs_I)
         rowsum = tf.reduce_sum(coefs_mat, 1, keepdims=True)
         # print('rowsum:', rowsum)
         # d_inv_sqrt = np.power(rowsum, -0.5).flatten()       #  D^(-1/2)
