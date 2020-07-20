@@ -15,6 +15,13 @@ The code is based on normal spectral based GCN and GAT.
 - `networkx==2.1`
 - `tensorflow-gpu==1.6.0`
 
+## Run the demo
+
+```bash
+cd gcn
+python train.py
+```
+
 ## Modification:
 
 Here I import the attention layer in GAT and put it into the GCN layer in layers.py
